@@ -1,8 +1,9 @@
 # backend/app/services/blame_analyzer.py
 import json
+from datetime import datetime, timezone
 from app.services.github_service import GitHubService
 from app.services.claude_service import ClaudeService
-from app.models.schemas import BlameRequest, BlameResponse, Suspect
+from app.models.schemas import BlameRequest, BlameResponse, Suspect, Commit, FileBlameRequest
 
 
 class BlameAnalyzer:
@@ -39,6 +40,34 @@ class BlameAnalyzer:
             blame_message=result.get("analysis", "")
         )
 
+    async def analyze_from_url(self, request: FileBlameRequest) -> BlameResponse:
+        """파일 URL 기반 blame + 커밋 히스토리 분석"""
+        owner, repo, branch, file_path = self.github_service.parse_file_url(request.file_url)
+
+        blame_data = await self.github_service.get_blame_data(owner, repo, file_path, branch)
+        commit_history = await self.github_service.get_commit_history(
+            owner, repo, branch, file_path, request.commit_limit
+        )
+        contributors = await self.github_service.get_contributors(owner, repo)
+
+        analysis_result = await self.claude_service.analyze_blame(
+            blame_data,
+            request.error_description,
+            commit_history=commit_history,
+            contributors=contributors,
+            file_url=request.file_url,
+        )
+
+        parsed = json.loads(analysis_result)
+        suspects = [Suspect(**s) for s in parsed["suspects"]]
+        timeline = self._build_timeline(commit_history)
+
+        return BlameResponse(
+            suspects=suspects,
+            timeline=timeline,
+            blame_message=parsed.get("analysis", "")
+        )
+
     async def generate_message(self, suspect: str, intensity: str) -> str:
         """Blame 메시지 생성"""
         context = {
@@ -52,3 +81,28 @@ class BlameAnalyzer:
         )
 
         return message
+
+    def _build_timeline(self, commit_history: list) -> list[Commit]:
+        """GitHub commit API 응답을 Commit 모델 리스트로 변환"""
+        timeline = []
+        for commit in commit_history or []:
+            commit_info = commit.get("commit", {}) or {}
+            author_info = commit_info.get("author") or {}
+            raw_date = author_info.get("date")
+
+            parsed_date = datetime.now(timezone.utc)
+            if raw_date:
+                try:
+                    parsed_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+                except ValueError:
+                    pass
+
+            timeline.append(
+                Commit(
+                    sha=commit.get("sha", ""),
+                    author=author_info.get("name") or (commit.get("author") or {}).get("login", "unknown"),
+                    message=commit_info.get("message", ""),
+                    date=parsed_date,
+                )
+            )
+        return timeline
