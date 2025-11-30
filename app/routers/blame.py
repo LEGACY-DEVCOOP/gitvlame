@@ -11,8 +11,10 @@ async def analyze_blame(
     analyzer: BlameAnalyzer = Depends()
 ):
     """파일의 git blame 분석 및 책임자 판단"""
-    result = await analyzer.analyze(request)
-    return result
+    try:
+        return await analyzer.analyze(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 @router.post("/analyze-url", response_model=BlameResponse)
 async def analyze_blame_from_url(

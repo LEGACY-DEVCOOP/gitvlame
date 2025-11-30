@@ -1,23 +1,17 @@
-# backend/app/services/claude_service.py
-import os
+# backend/app/services/gemini_service.py
 import json
-from anthropic import Anthropic
+import google.generativeai as genai
+import os
 
 
-class ClaudeService:
+class GeminiService:
     def __init__(self):
-        self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
-    async def analyze_blame(
-        self,
-        blame_data: dict,
-        error_description: str,
-        *,
-        commit_history: list | None = None,
-        contributors: list | None = None,
-        file_url: str | None = None,
-    ):
-        """Claude에게 blame 데이터 분석 요청"""
+    async def analyze_blame(self, blame_data: dict, error_description: str, file_url=None, commit_history=None,
+                            contributors=None):
+        """Git blame 데이터 분석"""
 
         slim_commits = []
         if commit_history:
@@ -50,7 +44,7 @@ class ClaudeService:
 {file_url or "직접 입력됨"}
 
 Git Blame 데이터:
-{blame_data}
+{json.dumps(blame_data, ensure_ascii=False, indent=2)}
 
 커밋 히스토리(최신 {len(slim_commits)}개):
 {json.dumps(slim_commits, ensure_ascii=False, indent=2) if slim_commits else "없음"}
@@ -58,7 +52,7 @@ Git Blame 데이터:
 레포지토리 기여자 통계:
 {json.dumps(slim_contributors, ensure_ascii=False, indent=2) if slim_contributors else "없음"}
 
-다음 JSON 형식으로 응답해주세요:
+다음 JSON 형식으로만 응답해주세요 (다른 텍스트 없이):
 {{
   "suspects": [
     {{
@@ -73,15 +67,8 @@ Git Blame 데이터:
 }}
 """
 
-        message = self.client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1024,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        return message.content[0].text
+        response = self.model.generate_content(prompt)
+        return response.text
 
     async def generate_blame_message(self, suspect: str, intensity: str, context: dict):
         """Blame 메시지 생성"""
@@ -103,12 +90,5 @@ Git Blame 데이터:
 한글로 2-3문장 정도로 작성해주세요.
 """
 
-        message = self.client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=256,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        return message.content[0].text
+        response = self.model.generate_content(prompt)
+        return response.text

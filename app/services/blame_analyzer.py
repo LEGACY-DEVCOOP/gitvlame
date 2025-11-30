@@ -2,20 +2,20 @@
 import json
 from datetime import datetime, timezone
 from app.services.github_service import GitHubService
-from app.services.claude_service import ClaudeService
+from app.services.gemini_service import GeminiService
 from app.models.schemas import BlameRequest, BlameResponse, Suspect, Commit, FileBlameRequest
 
 
 class BlameAnalyzer:
     def __init__(self):
         self.github_service = GitHubService()
-        self.claude_service = ClaudeService()
+        self.claude_service = GeminiService()
 
     async def analyze(self, request: BlameRequest) -> BlameResponse:
         """전체 blame 분석 프로세스"""
 
         # 1. repo 정보 파싱
-        owner, repo = request.repo.split("/")
+        owner, repo = self._parse_repo(request.repo)
 
         # 2. GitHub에서 blame 데이터 가져오기
         blame_data = await self.github_service.get_blame_data(
@@ -106,3 +106,18 @@ class BlameAnalyzer:
                 )
             )
         return timeline
+
+    def _parse_repo(self, repo_field: str) -> tuple[str, str]:
+        """
+        owner/repo 문자열 또는 https://github.com/owner/repo 형태 모두 지원
+        """
+        value = repo_field.strip()
+        if "github.com" in value:
+            parts = value.split("github.com/", 1)[-1].split("/")
+        else:
+            parts = value.split("/")
+
+        if len(parts) >= 2 and parts[0] and parts[1]:
+            return parts[0], parts[1]
+
+        raise ValueError("repo는 'owner/repo' 또는 GitHub URL 형식이어야 합니다.")
