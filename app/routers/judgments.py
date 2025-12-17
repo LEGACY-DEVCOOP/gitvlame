@@ -3,7 +3,7 @@ from typing import List
 from datetime import datetime, timedelta
 from app.database import db
 from app.dependencies import get_current_user
-from app.models.schemas import JudgmentCreate, JudgmentResponse, JudgmentListResponse, SuspectResponse
+from app.models.schemas import JudgmentCreate, JudgmentResponse, JudgmentListResponse, SuspectResponse, PaginatedResponse
 from app.services.github_service import GitHubService
 from app.services.gemini_service import GeminiService
 from app.utils.exceptions import ForbiddenException
