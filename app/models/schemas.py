@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List, Generic, TypeVar, Literal
+from typing import Optional, List, Generic, TypeVar, Literal, Union
 from uuid import UUID
 from datetime import datetime
 
@@ -95,17 +95,20 @@ class SuspectResponse(BaseModel):
     last_commit_date: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
+class BlameMessages(BaseModel):
+    mild: List[str]
+    medium: List[str]
+    spicy: List[str]
+
 class BlameResponse(BaseModel):
     id: UUID
     target_username: str
     target_avatar: Optional[str] = None
     responsibility: int
     reason: Optional[str] = None
-    message: Optional[str] = None
-    intensity: str
+    messages: BlameMessages
     image_url: Optional[str] = None
     created_at: datetime
-    model_config = ConfigDict(from_attributes=True)
 
 class JudgmentResponse(BaseModel):
     id: UUID
@@ -134,7 +137,7 @@ class JudgmentListResponse(BaseModel):
 
 # Blame
 class BlameCreate(BaseModel):
-    intensity: Literal["mild", "medium", "spicy"] = "medium"
+    pass  # No fields needed - generates all intensities
 
 # Common
 class PaginatedResponse(BaseModel, Generic[T]):
