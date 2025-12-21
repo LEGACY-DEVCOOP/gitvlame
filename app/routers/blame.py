@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.database import db
+from app.database import _ensure_prisma_client
 from app.dependencies import get_current_user
 from app.models.schemas import BlameCreate, BlameResponse, BlameMessages
 from app.services.claude_service import ClaudeService
@@ -15,6 +15,10 @@ async def create_blame(
     blame_in: BlameCreate,
     current_user = Depends(get_current_user)
 ):
+    db = _ensure_prisma_client()
+    if not db.is_connected():
+        await db.connect()
+
     judgment = await db.judgment.find_unique(
         where={"id": judgment_id},
         include={"suspects": True, "blame": True}
@@ -99,6 +103,10 @@ async def get_blame(
     judgment_id: str,
     current_user = Depends(get_current_user)
 ):
+    db = _ensure_prisma_client()
+    if not db.is_connected():
+        await db.connect()
+
     blame = await db.blame.find_unique(where={"judgment_id": judgment_id})
     if not blame:
         raise HTTPException(status_code=404, detail="Blame not found")
@@ -133,6 +141,10 @@ async def generate_blame_image(
     judgment_id: str,
     current_user = Depends(get_current_user)
 ):
+    db = _ensure_prisma_client()
+    if not db.is_connected():
+        await db.connect()
+
     judgment = await db.judgment.find_unique(
         where={"id": judgment_id},
         include={"blame": True, "suspects": True} # suspects needed for commit msg if not in blame? Blame has it? No blame doesn't have commit msg.

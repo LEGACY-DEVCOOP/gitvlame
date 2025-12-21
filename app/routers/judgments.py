@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from datetime import datetime, timedelta
-from app.database import db
+from app.database import _ensure_prisma_client
 from app.dependencies import get_current_user
 from app.models.schemas import JudgmentCreate, JudgmentResponse, JudgmentListResponse, SuspectResponse, PaginatedResponse
 from app.services.github_service import GitHubService
@@ -17,6 +17,10 @@ async def create_judgment(
     judgment_in: JudgmentCreate,
     current_user = Depends(get_current_user)
 ):
+    db = _ensure_prisma_client()
+    if not db.is_connected():
+        await db.connect()
+
     # Generate Case Number
     year = datetime.now().year
     # 3 groups of 4 digits
@@ -46,6 +50,10 @@ async def list_judgments(
     per_page: int = 20,
     current_user = Depends(get_current_user)
 ):
+    db = _ensure_prisma_client()
+    if not db.is_connected():
+        await db.connect()
+
     where = {"user_id": current_user.id}
     if status:
         where["status"] = status
@@ -87,6 +95,10 @@ async def get_judgment(
     judgment_id: str,
     current_user = Depends(get_current_user)
 ):
+    db = _ensure_prisma_client()
+    if not db.is_connected():
+        await db.connect()
+
     judgment = await db.judgment.find_unique(
         where={"id": judgment_id},
         include={"suspects": True, "blame": True}
@@ -125,6 +137,10 @@ async def analyze_judgment(
     judgment_id: str,
     current_user = Depends(get_current_user)
 ):
+    db = _ensure_prisma_client()
+    if not db.is_connected():
+        await db.connect()
+
     judgment = await db.judgment.find_unique(where={"id": judgment_id})
     
     if not judgment:
@@ -209,6 +225,10 @@ async def delete_judgment(
     judgment_id: str,
     current_user = Depends(get_current_user)
 ):
+    db = _ensure_prisma_client()
+    if not db.is_connected():
+        await db.connect()
+
     judgment = await db.judgment.find_unique(where={"id": judgment_id})
     if not judgment:
         raise HTTPException(status_code=404, detail="Judgment not found")
