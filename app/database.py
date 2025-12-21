@@ -13,12 +13,17 @@ def _generate_prisma_client() -> None:
     """
     # Lambda/Edge filesystems are often read-only outside /tmp, so redirect Prisma caches there.
     env = os.environ.copy()
-    cache_root = Path(env.get("XDG_CACHE_HOME", "/tmp"))
+    env["HOME"] = "/tmp"  # force Path.home() inside prisma CLI to land on a writable path
+
+    cache_root = Path(env.get("XDG_CACHE_HOME", "/tmp/.cache"))
     engines_cache = cache_root / "prisma-engines"
-    for path in (cache_root, engines_cache):
+    cli_cache = cache_root / "prisma-python"
+    for path in (cache_root, engines_cache, cli_cache):
         path.mkdir(parents=True, exist_ok=True)
+
     env.setdefault("XDG_CACHE_HOME", str(cache_root))
     env.setdefault("PRISMA_ENGINES_CACHE_DIR", str(engines_cache))
+    env.setdefault("PRISMA_PYTHON_CLI_CACHE_DIR", str(cli_cache))
 
     last_error: Exception | None = None
     for cmd in (["prisma", "generate"], [sys.executable, "-m", "prisma", "generate"]):
