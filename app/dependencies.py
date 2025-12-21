@@ -2,15 +2,16 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from app.config import settings
-from app.database import db
+from app.database import _ensure_prisma_client
 from app.utils.exceptions import UnauthorizedException
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def get_db():
-    if not db.is_connected():
-        await db.connect()
-    return db
+    prisma = _ensure_prisma_client()
+    if not prisma.is_connected():
+        await prisma.connect()
+    return prisma
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
@@ -21,7 +22,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     except jwt.PyJWTError:
         raise UnauthorizedException()
     
-    user = await db.user.find_unique(where={"id": user_id})
+    prisma = await get_db()
+    user = await prisma.user.find_unique(where={"id": user_id})
     if user is None:
         raise UnauthorizedException()
     return user

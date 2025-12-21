@@ -4,7 +4,7 @@ import httpx
 import jwt
 from datetime import datetime, timedelta
 from app.config import settings
-from app.database import db
+from app.database import _ensure_prisma_client
 from app.models.schemas import UserResponse, Token
 from app.dependencies import get_current_user
 
@@ -29,6 +29,10 @@ async def github_login():
 
 @router.get("/github/callback")
 async def github_callback(code: str):
+    prisma = _ensure_prisma_client()
+    if not prisma.is_connected():
+        await prisma.connect()
+
     # Exchange code for access token
     async with httpx.AsyncClient(timeout=30.0) as client:
         token_res = await client.post(
@@ -61,7 +65,7 @@ async def github_callback(code: str):
         username = user_data["login"]
         avatar_url = user_data.get("avatar_url")
         
-        user = await db.user.upsert(
+        user = await prisma.user.upsert(
             where={"github_id": github_id},
             data={
                 "create": {
