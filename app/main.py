@@ -10,7 +10,7 @@ from app.utils.exceptions import (
     ForbiddenException,
     NotFoundException,
     GitHubAPIException,
-    GeminiAPIException,
+    ClaudeAPIException,
 )
 
 @asynccontextmanager
@@ -55,14 +55,14 @@ async def not_found_exception_handler(request: Request, exc: NotFoundException):
 async def github_api_exception_handler(request: Request, exc: GitHubAPIException):
     return JSONResponse(
         status_code=status.HTTP_502_BAD_GATEWAY,
-        content={"message": "GitHub API Error"},
+        content={"message": "GitHub API Error", "detail": str(exc)},
     )
 
-@app.exception_handler(GeminiAPIException)
-async def gemini_api_exception_handler(request: Request, exc: GeminiAPIException):
+@app.exception_handler(ClaudeAPIException)
+async def claude_api_exception_handler(request: Request, exc: ClaudeAPIException):
     return JSONResponse(
         status_code=status.HTTP_502_BAD_GATEWAY,
-        content={"message": "Gemini API Error"},
+        content={"message": "Claude API Error", "detail": str(exc)},
     )
 
 # Routers

@@ -10,5 +10,5 @@ class NotFoundException(Exception):
 class GitHubAPIException(Exception):
     pass
 
-class GeminiAPIException(Exception):
+class ClaudeAPIException(Exception):
     pass

@@ -167,17 +167,40 @@ GitVlame의 백엔드 API 상세 명세서입니다. 모든 API 요청은 기본
 ### 14. 최종 판결 내리기 (Blame 생성)
 - **URL**: `/judgments/{judgment_id}/blame`
 - **Method**: `POST`
-- **Body**:
-  ```json
-  {
-    "intensity": "mild" | "medium" | "spicy"
-  }
-  ```
-- **설명**: 가장 책임이 큰 용의자(Main Suspect)를 선정하고, 선택한 강도에 따라 AI가 판결 메시지를 생성합니다.
+- **Body**: `{}` (빈 객체)
+- **설명**: 가장 책임이 큰 용의자(Main Suspect)를 선정하고, **세 가지 강도의 판결 메시지를 모두 생성**합니다.
   - `mild` (순한맛): 정중한 수정 요청
   - `medium` (중간맛): 유머러스한 지적
   - `spicy` (매운맛): 강력하고 직설적인 비난(재미 위주)
-- **응답**: 생성된 Blame 객체 (AI 메시지 포함)
+- **응답 예시**:
+  ```json
+  {
+    "id": "uuid",
+    "target_username": "hjy080530",
+    "target_avatar": "https://...",
+    "responsibility": 70,
+    "reason": "최근 커밋 작성자",
+    "messages": {
+      "mild": [
+        "hjy080530님 확인 부탁드려요.",
+        "신택스 에러가 발생했습니다.",
+        "시간 되실 때 봐주세요~ 🙏"
+      ],
+      "medium": [
+        "hjy080530님 70% 책임이시네요!",
+        "예제 파일이 터졌어요.",
+        "커피 한 잔 사주시죠? ☕"
+      ],
+      "spicy": [
+        "야 hjy080530 이거 누가 짠 거야.",
+        "신택스 에러 터트려놓고.",
+        "책임지세요 선배님! 🔥"
+      ]
+    },
+    "image_url": null,
+    "created_at": "2025-12-21T12:00:00Z"
+  }
+  ```
 
 ### 15. 판결 결과 조회
 - **URL**: `/judgments/{judgment_id}/blame`

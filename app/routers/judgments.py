@@ -5,7 +5,7 @@ from app.database import db
 from app.dependencies import get_current_user
 from app.models.schemas import JudgmentCreate, JudgmentResponse, JudgmentListResponse, SuspectResponse, PaginatedResponse
 from app.services.github_service import GitHubService
-from app.services.gemini_service import GeminiService
+from app.services.claude_service import ClaudeService
 from app.utils.exceptions import ForbiddenException
 import random
 import string
@@ -80,6 +80,7 @@ async def list_judgments(
 
 # Need to import PaginatedResponse here or move it to common
 from app.models.schemas import PaginatedResponse
+import json
 
 @router.get("/{judgment_id}", response_model=JudgmentResponse)
 async def get_judgment(
@@ -96,6 +97,10 @@ async def get_judgment(
         
     if judgment.user_id != current_user.id:
         raise ForbiddenException()
+
+    # Manually parse the json string in message field into messages field
+    if judgment.blame and hasattr(judgment.blame, 'message') and isinstance(judgment.blame.message, str):
+        judgment.blame.messages = json.loads(judgment.blame.message)
         
     return judgment
 
@@ -134,9 +139,9 @@ async def analyze_judgment(
             "deletions": c.deletions
         })
         
-    # 2. Gemini Analysis
-    gemini_service = GeminiService()
-    analysis_result = await gemini_service.analyze_commits({
+    # 2. Claude Analysis
+    claude_service = ClaudeService()
+    analysis_result = await claude_service.analyze_commits({
         "title": judgment.title,
         "description": judgment.description,
         "file_path": judgment.file_path,

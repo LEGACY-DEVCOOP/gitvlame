@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_ID: str
     GITHUB_CLIENT_SECRET: str
     GITHUB_REDIRECT_URI: str
-    GEMINI_API_KEY: str
+    CLAUDE_API_KEY: str
     SUPABASE_URL: str
     SUPABASE_KEY: str
     SECRET_KEY: str
